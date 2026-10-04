@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-cache, must-revalidate">
 <meta name="color-scheme" content="dark">
-<meta name="description" content="Robux price check and resale calculator: see what you pay for an amount, or work out profit on a flip.">
-<title>Robux Resale Calculator</title>
+<meta name="description" content="Robux blackmarket calculator: see what you pay for an amount, or work out profit on a flip.">
+<title>Robux blackmarket calculator</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=JetBrains+Mono:wght@500;700&family=Manrope:wght@500;600;700;800&display=swap">
@@ -208,7 +208,7 @@ body.intro{animation:pageIn .55s ease both}
 .overlay.intro .choice:nth-of-type(1){animation-delay:.28s}
 .overlay.intro .choice:nth-of-type(2){animation-delay:.38s}
 .overlay-title{margin:6px 0 0;font:700 clamp(26px,6vw,40px)/1.1 var(--font-display);letter-spacing:-.01em;text-wrap:balance}
-.overlay-title .bm{color:#D41D26;text-shadow:0 0 16px rgba(176,10,20,.55),0 0 44px rgba(140,8,16,.35)}
+.bm{color:#D41D26;text-shadow:0 0 16px rgba(176,10,20,.55),0 0 44px rgba(140,8,16,.35)}
 .overlay-sub{margin:0 0 20px;color:var(--muted);font-size:14.5px}
 .choose{display:grid;gap:14px;grid-template-columns:minmax(0,1fr);width:100%}
 @media (min-width:620px){.choose{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -257,7 +257,7 @@ footer p{margin:0}
 <div class="wrap">
   <header>
     <div class="eyebrow">R$ → USD</div>
-    <h1>Robux Resale Calculator</h1>
+    <h1>Robux <span class="bm">blackmarket</span> calculator</h1>
     <p class="lede" id="lede">Enter what you bought and what you paid, then slide your sell rate to see your revenue and profit.</p>
   </header>
 
@@ -272,10 +272,10 @@ footer p{margin:0}
         <div class="field">
           <span class="field-label" id="modeLabel">Which amount do you know?</span>
           <div class="seg" role="radiogroup" aria-labelledby="modeLabel">
-            <input type="radio" name="bmode" id="modeGamepass" value="gp" checked>
-            <label for="modeGamepass"><b>Gamepass price</b><span>Before tax</span></label>
-            <input type="radio" name="bmode" id="modeKeep" value="keep">
+            <input type="radio" name="bmode" id="modeKeep" value="keep" checked>
             <label for="modeKeep"><b>What I keep</b><span>After tax</span></label>
+            <input type="radio" name="bmode" id="modeGamepass" value="gp">
+            <label for="modeGamepass"><b>Gamepass price</b><span>Before tax</span></label>
           </div>
         </div>
         <div class="field">
@@ -406,7 +406,7 @@ footer p{margin:0}
 <div class="overlay open" id="chooser">
   <div class="overlay-inner">
     <div class="eyebrow">R$ &#8594; USD</div>
-    <h2 class="overlay-title">Roblox <span class="bm">blackmarket</span> calculator</h2>
+    <h2 class="overlay-title">Robux <span class="bm">blackmarket</span> calculator</h2>
     <p class="overlay-sub">What are you here for?</p>
     <div class="choose">
       <button class="choice" type="button" data-go="buy">
