@@ -1,0 +1,783 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="Robux price check and resale calculator: see what you pay for an amount, or work out profit on a flip.">
+<title>Robux Resale Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=JetBrains+Mono:wght@500;700&family=Manrope:wght@500;600;700;800&display=swap">
+<style>
+:root{
+  color-scheme:dark;
+  --ground:#0B0E13;
+  --panel:#131821;
+  --panel-2:#0E1219;
+  --panel-3:#1B2230;
+  --line:#222A37;
+  --line-2:#2E3848;
+  --text:#E9EDF3;
+  --muted:#8C96A8;
+  --faint:#5F6879;
+  --accent:#8EA8FF;
+  --green:#2BD47D;
+  --green-soft:rgba(43,212,125,.14);
+  --green-zone:rgba(43,212,125,.6);
+  --red:#FF5C63;
+  --red-soft:rgba(255,92,99,.14);
+  --red-zone:rgba(255,92,99,.6);
+  --neutral-zone:#2A3240;
+  --font-display:"Chakra Petch","Trebuchet MS",system-ui,sans-serif;
+  --font-body:"Manrope",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-num:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --thumb:26px;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{background:var(--ground)}
+body{
+  margin:0;
+  min-height:100%;
+  background:
+    radial-gradient(900px 520px at 8% -10%, rgba(142,168,255,.08), transparent 60%),
+    var(--ground);
+  color:var(--text);
+  font:500 15px/1.5 var(--font-body);
+  padding-inline:16px;
+  padding-block:28px 64px;
+  -webkit-font-smoothing:antialiased;
+}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1040px;margin-inline:auto;display:flex;flex-direction:column;gap:24px}
+
+/* Header */
+.eyebrow{font:500 12px/1 var(--font-num);color:var(--muted);letter-spacing:.06em}
+h1{font:700 clamp(30px,6.4vw,46px)/1.05 var(--font-display);margin:10px 0 10px;letter-spacing:-.01em;text-wrap:balance}
+.lede{margin:0;color:var(--muted);max-width:56ch}
+
+/* Layout */
+.grid{display:grid;gap:16px;grid-template-columns:minmax(0,1fr);grid-template-areas:"buy" "result" "sell"}
+.buy{grid-area:buy}.sell{grid-area:sell}.result{grid-area:result}
+@media (min-width:860px){
+  .grid{grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr);grid-template-areas:"buy result" "sell result";align-items:start}
+  .result{position:sticky;top:calc(env(safe-area-inset-top,0px) + 20px)}
+}
+
+/* Cards */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:18px;min-width:0}
+@media (min-width:520px){.card{padding:24px}}
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.label{margin:0;font:800 11.5px/1 var(--font-body);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.sub{font-size:13px;color:var(--faint);margin-top:6px}
+
+/* Fields */
+.two{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+@media (min-width:520px){.two{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.field{display:flex;flex-direction:column;gap:8px;min-width:0}
+.field-label{font:700 13.5px/1.25 var(--font-body);color:var(--text)}
+.input{display:flex;align-items:center;gap:10px;height:54px;padding-inline:16px;background:var(--panel-2);border:1px solid var(--line-2);border-radius:12px;transition:border-color .15s,box-shadow .15s}
+.input:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(142,168,255,.16)}
+.input.invalid{border-color:var(--red);box-shadow:0 0 0 3px var(--red-soft)}
+.affix{font:500 15px/1 var(--font-num);color:var(--faint);white-space:nowrap}
+.input input{flex:1;min-width:0;height:100%;padding:0;background:transparent;border:0;outline:0;color:var(--text);font:700 20px/1 var(--font-num);font-variant-numeric:tabular-nums}
+.input input::placeholder{color:var(--faint);font-weight:500}
+.hint{font-size:12.5px;color:var(--faint)}
+.hint.error{color:var(--red)}
+
+/* Tax toggle */
+.seg{position:relative;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;padding:5px;background:var(--panel-2);border:1px solid var(--line-2);border-radius:14px}
+.seg input{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px}
+.seg label{display:flex;flex-direction:column;gap:3px;padding:10px 12px;border-radius:10px;border:1px solid transparent;cursor:pointer;transition:background .15s,border-color .15s}
+.seg label b{font:700 14px/1.2 var(--font-body);color:var(--muted)}
+.seg label span{font:500 12px/1.3 var(--font-body);color:var(--faint)}
+.seg label:hover b{color:var(--text)}
+.seg input:checked + label{background:var(--panel-3);border-color:var(--line-2)}
+.seg input:checked + label b{color:var(--text)}
+.seg input:checked + label span{color:var(--muted)}
+.seg input:focus-visible + label{outline:2px solid var(--accent);outline-offset:2px}
+.col{display:flex;flex-direction:column;gap:16px;min-width:0}
+
+/* Seller's-rate mini slider (under Price paid) */
+.mini{display:flex;flex-direction:column;gap:4px;padding-top:4px;--mthumb:18px;--mtrack:linear-gradient(var(--neutral-zone),var(--neutral-zone))}
+.mini-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.mini-head label{font:600 12.5px/1.2 var(--font-body);color:var(--muted)}
+.mini-head output{font:700 13.5px/1 var(--font-num);color:var(--red);white-space:nowrap}
+.mini-head output small{font-size:11px;font-weight:500;color:var(--faint);margin-left:4px}
+.mini input[type=range]{display:block;width:100%;height:26px;margin:0;background:transparent;-webkit-appearance:none;appearance:none;cursor:pointer;touch-action:pan-y}
+.mini input[type=range]:focus{outline:none}
+.mini input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:999px;background:var(--mtrack)}
+.mini input[type=range]::-moz-range-track{height:6px;border-radius:999px;background:var(--mtrack)}
+.mini input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;box-sizing:border-box;width:var(--mthumb);height:var(--mthumb);margin-top:-6px;border-radius:50%;background:var(--text);border:4px solid var(--red);box-shadow:0 1px 6px rgba(0,0,0,.5)}
+.mini input[type=range]::-moz-range-thumb{box-sizing:border-box;width:var(--mthumb);height:var(--mthumb);border-radius:50%;background:var(--text);border:4px solid var(--red);box-shadow:0 1px 6px rgba(0,0,0,.5)}
+.mini input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 5px rgba(142,168,255,.35)}
+.mini input[type=range]:focus-visible::-moz-range-thumb{box-shadow:0 0 0 5px rgba(142,168,255,.35)}
+.mini-scale{position:relative;height:14px}
+.mini-scale span{position:absolute;top:0;transform:translateX(-50%);font:500 10.5px/1 var(--font-num);color:var(--faint);white-space:nowrap}
+.mini-scale span.first{transform:translateX(calc(var(--mthumb) / -2))}
+.mini-scale span.last{transform:translateX(calc(-100% + var(--mthumb) / 2))}
+
+/* Example chip + buttons */
+.chip{display:inline-flex;align-items:center;gap:8px;margin:0;align-self:flex-start;font:600 12px/1.2 var(--font-body);color:var(--muted);padding:7px 11px;border:1px dashed var(--line-2);border-radius:999px}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent);flex:none}
+.btn-text{appearance:none;background:transparent;border:1px solid var(--line-2);color:var(--muted);font:700 12.5px/1 var(--font-body);padding:9px 14px;border-radius:999px;cursor:pointer;transition:color .15s,border-color .15s}
+.btn-text:hover{color:var(--text);border-color:var(--faint)}
+
+/* Robux received */
+.received{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 16px;padding-top:18px;border-top:1px dashed var(--line-2)}
+.how{margin-top:4px;font:500 12.5px/1.45 var(--font-num);color:var(--faint)}
+.big{font:700 clamp(26px,5.5vw,32px)/1 var(--font-num);font-variant-numeric:tabular-nums;color:var(--text);white-space:nowrap}
+.big small{font-size:.5em;font-weight:500;color:var(--muted);margin-right:6px;vertical-align:.25em}
+
+/* Result */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.pill{font:800 11px/1 var(--font-body);letter-spacing:.12em;text-transform:uppercase;padding:7px 11px;border-radius:999px;background:var(--line);color:var(--muted);white-space:nowrap}
+.pill.up{background:var(--green-soft);color:var(--green)}
+.pill.down{background:var(--red-soft);color:var(--red)}
+.profit{font:700 clamp(40px,10vw,60px)/1 var(--font-num);font-variant-numeric:tabular-nums;letter-spacing:-.03em;color:var(--text);overflow-wrap:anywhere;transition:color .15s,text-shadow .15s}
+.profit.up{color:var(--green);text-shadow:0 0 24px rgba(43,212,125,.14)}
+.profit.down{color:var(--red);text-shadow:0 0 24px rgba(255,92,99,.14)}
+.at{margin-top:-8px;font:500 13px/1.4 var(--font-num);color:var(--muted)}
+.ledger{margin:0;padding:0;border-top:1px solid var(--line)}
+.row{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:13px 0;border-bottom:1px solid var(--line)}
+.row dt{color:var(--muted);font-weight:600;font-size:14px}
+.row dd{margin:0;font:700 17px/1.2 var(--font-num);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.row dd small{font-size:12px;font-weight:500;color:var(--faint);margin-left:4px}
+.in{color:var(--green)}
+.out{color:var(--red)}
+.math{display:flex;flex-direction:column;gap:2px;font:500 12.5px/1.6 var(--font-num);color:var(--faint);overflow-wrap:anywhere}
+
+/* Sell rate */
+.rate-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px}
+.rate-ctl{display:flex;align-items:center;gap:8px}
+.step{flex:none;width:46px;height:50px;border-radius:12px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--text);font:600 22px/1 var(--font-num);cursor:pointer;transition:border-color .15s,opacity .15s}
+.step:hover{border-color:var(--faint)}
+.step:disabled{opacity:.35;cursor:default}
+.rate-ctl .input{height:50px;width:156px;padding-inline:12px;gap:6px}
+.rate-ctl .input input{font-size:19px;text-align:right}
+.unit{font:500 12.5px/1 var(--font-num);color:var(--faint);white-space:nowrap}
+@media (max-width:519px){.rate-ctl{width:100%}.rate-ctl .input{flex:1;width:auto;min-width:0}}
+
+/* Slider with break-even marker */
+.scale{position:relative;padding-top:36px;--ring:var(--muted);--be:50%;--track:linear-gradient(var(--neutral-zone),var(--neutral-zone))}
+.scale input[type=range]{position:relative;z-index:1;display:block;width:100%;height:36px;margin:0;background:transparent;-webkit-appearance:none;appearance:none;cursor:pointer;touch-action:pan-y}
+.scale input[type=range]:focus{outline:none}
+.scale input[type=range]::-webkit-slider-runnable-track{height:10px;border-radius:999px;background:var(--track)}
+.scale input[type=range]::-moz-range-track{height:10px;border-radius:999px;background:var(--track)}
+.scale input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;box-sizing:border-box;width:var(--thumb);height:var(--thumb);margin-top:-8px;border-radius:50%;background:var(--text);border:5px solid var(--ring);box-shadow:0 2px 10px rgba(0,0,0,.55);transition:border-color .15s}
+.scale input[type=range]::-moz-range-thumb{box-sizing:border-box;width:var(--thumb);height:var(--thumb);border-radius:50%;background:var(--text);border:5px solid var(--ring);box-shadow:0 2px 10px rgba(0,0,0,.55)}
+.scale input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 6px rgba(142,168,255,.35)}
+.scale input[type=range]:focus-visible::-moz-range-thumb{box-shadow:0 0 0 6px rgba(142,168,255,.35)}
+.be-line{position:absolute;z-index:0;top:28px;left:var(--be);width:2px;height:40px;margin-left:-1px;border-radius:2px;background:var(--text);opacity:.9;pointer-events:none}
+.be-flag{position:absolute;top:0;left:var(--be);transform:translateX(-50%);display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--panel-3);border:1px solid var(--line-2);border-radius:8px;font:700 11.5px/1 var(--font-num);color:var(--text);white-space:nowrap;pointer-events:none}
+.be-flag span{font:800 9.5px/1 var(--font-body);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.be-flag.start{transform:translateX(-13px)}
+.be-flag.end{transform:translateX(calc(-100% + 13px))}
+.ticks{position:relative;height:30px;margin-top:2px}
+.tick{position:absolute;top:0;width:1px;height:5px;background:var(--line-2);transform:translateX(-50%)}
+.tick.major{height:8px;background:var(--faint)}
+.tick-label{position:absolute;top:13px;transform:translateX(-50%);font:500 11.5px/1 var(--font-num);color:var(--faint);white-space:nowrap}
+.tick-label.first{transform:translateX(-13px)}
+.tick-label.last{transform:translateX(calc(-100% + 13px))}
+.note{margin:0;font-size:13.5px;color:var(--muted)}
+.note b{color:var(--text);font:700 13.5px/1 var(--font-num)}
+
+/* Choice overlay */
+html.locked, html.locked body{overflow:hidden}
+.views{transition:opacity .32s ease,transform .44s cubic-bezier(.2,.8,.25,1)}
+.views.behind{pointer-events:none;opacity:.9;transform:scale(.99)}
+@keyframes viewIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.view-enter{animation:viewIn .36s cubic-bezier(.2,.8,.25,1)}
+html.no-anim *{transition:none!important;animation:none!important}
+.overlay{position:fixed;inset:0;z-index:50;display:grid;place-items:center;overflow-y:auto;padding:28px 16px;opacity:0;visibility:hidden;background:rgba(9,12,17,0);backdrop-filter:blur(0px) saturate(100%);-webkit-backdrop-filter:blur(0px) saturate(100%);transition:opacity .3s ease,background .36s ease,backdrop-filter .36s ease,-webkit-backdrop-filter .36s ease,visibility 0s linear .36s}
+.overlay.open{opacity:1;visibility:visible;background:rgba(9,12,17,.62);backdrop-filter:blur(16px) saturate(120%);-webkit-backdrop-filter:blur(16px) saturate(120%);transition:opacity .3s ease,background .42s ease,backdrop-filter .42s ease,-webkit-backdrop-filter .42s ease,visibility 0s}
+.overlay-inner{width:100%;max-width:720px;display:flex;flex-direction:column;gap:6px;text-align:center;align-items:center;opacity:0;transform:translateY(16px) scale(.98);transition:opacity .3s ease .03s,transform .44s cubic-bezier(.2,.8,.25,1) .03s}
+.overlay.open .overlay-inner{opacity:1;transform:none}
+.overlay-title{margin:6px 0 0;font:700 clamp(26px,6vw,40px)/1.1 var(--font-display);letter-spacing:-.01em;text-wrap:balance}
+.overlay-title .bm{color:#D41D26;text-shadow:0 0 16px rgba(176,10,20,.55),0 0 44px rgba(140,8,16,.35)}
+.overlay-sub{margin:0 0 20px;color:var(--muted);font-size:14.5px}
+.choose{display:grid;gap:14px;grid-template-columns:minmax(0,1fr);width:100%}
+@media (min-width:620px){.choose{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.choice{position:relative;display:flex;flex-direction:column;gap:7px;text-align:left;padding:24px;background:rgba(19,24,33,.92);border:1px solid var(--line-2);border-radius:18px;cursor:pointer;isolation:isolate;transition:transform .35s cubic-bezier(.2,.8,.25,1),background .3s}
+.choice b{font:700 19px/1.2 var(--font-display);color:var(--text)}
+.choice span{font:500 13.5px/1.45 var(--font-body);color:var(--muted)}
+/* lightsaber edge: ignites around the button on hover */
+.choice::before{content:"";position:absolute;inset:-1px;border-radius:inherit;border:2px solid #fff;opacity:0;clip-path:inset(0 100% 0 0 round 18px);box-shadow:0 0 10px rgba(255,255,255,.95),0 0 28px rgba(255,255,255,.55),inset 0 0 14px rgba(255,255,255,.35);transition:opacity .18s linear,clip-path .75s cubic-bezier(.25,.8,.3,1);pointer-events:none;z-index:2}
+.choice:hover,.choice:focus-visible{transform:translateY(-6px) scale(1.015);background:rgba(27,34,48,.96);outline:none;box-shadow:0 0 24px rgba(255,255,255,.22),0 0 70px rgba(255,255,255,.12),0 18px 40px rgba(0,0,0,.55)}
+.choice:hover::before,.choice:focus-visible::before{opacity:1;clip-path:inset(0 0 0 0 round 18px)}
+.choice:active{transform:translateY(-2px) scale(1.005)}
+
+/* Buyer view */
+.switch{appearance:none;background:transparent;border:0;margin:0 0 12px;padding:6px 2px;color:var(--muted);font:700 13px/1 var(--font-body);cursor:pointer}
+.switch:hover{color:var(--text)}
+.buyer{max-width:560px}
+.rate-tag{font:600 12.5px/1 var(--font-body);color:var(--muted);white-space:nowrap}
+.rate-tag b{font:700 14px/1 var(--font-num);color:var(--text);margin:0 2px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip-btn{appearance:none;background:var(--panel-2);border:1px solid var(--line-2);color:var(--muted);font:700 13px/1 var(--font-num);padding:10px 15px;border-radius:999px;cursor:pointer;transition:color .15s,border-color .15s}
+.chip-btn:hover{color:var(--text);border-color:var(--faint)}
+.payline{display:flex;flex-direction:column;gap:7px;padding-top:18px;border-top:1px dashed var(--line-2)}
+.price{font:700 clamp(44px,12vw,64px)/1 var(--font-num);font-variant-numeric:tabular-nums;letter-spacing:-.03em;color:var(--text);overflow-wrap:anywhere}
+.rate-edit summary{font:600 13px/1.3 var(--font-body);color:var(--muted);cursor:pointer}
+.rate-edit summary:hover{color:var(--text)}
+.rate-edit .rate-ctl{margin-top:10px}
+
+/* Share link */
+.share{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-top:14px;border-top:1px dashed var(--line-2)}
+.share code{flex:1;min-width:0;font:500 11.5px/1.45 var(--font-num);color:var(--faint);overflow-wrap:anywhere}
+
+/* Signature */
+.sig{position:fixed;z-index:100;right:12px;bottom:calc(10px + env(safe-area-inset-bottom,0px));padding:6px 10px;border-radius:999px;background:rgba(9,12,17,.6);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);font:600 11.5px/1 var(--font-body);letter-spacing:.04em;text-transform:lowercase;color:var(--faint);pointer-events:none}
+
+footer{color:var(--faint);font-size:12.5px;max-width:72ch}
+footer p{margin:0}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">R$ → USD</div>
+    <h1>Robux Resale Calculator</h1>
+    <p class="lede" id="lede">Enter what you bought and what you paid, then slide your sell rate to see your revenue and profit.</p>
+  </header>
+
+  <main class="views" id="views">
+    <div id="buyerView" hidden>
+      <button class="switch" type="button" data-go="home">&#8592; Back</button>
+      <section class="card buyer" aria-labelledby="payTitle">
+        <div class="card-head">
+          <h2 class="label" id="payTitle">What you'll pay</h2>
+          <div class="rate-tag">rate <b id="buyerRateTag">$5.00</b> / 1k</div>
+        </div>
+        <div class="field">
+          <span class="field-label" id="modeLabel">Which amount do you know?</span>
+          <div class="seg" role="radiogroup" aria-labelledby="modeLabel">
+            <input type="radio" name="bmode" id="modeGamepass" value="gp" checked>
+            <label for="modeGamepass"><b>Gamepass price</b><span>Before tax</span></label>
+            <input type="radio" name="bmode" id="modeKeep" value="keep">
+            <label for="modeKeep"><b>What I keep</b><span>After tax</span></label>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label" id="wantLabel" for="wantInput">Robux you're buying</label>
+          <div class="input" id="wantBox"><span class="affix">R$</span><input id="wantInput" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="10,000"></div>
+          <div class="chips" id="chips">
+            <button class="chip-btn" type="button" data-amt="1000">1k</button>
+            <button class="chip-btn" type="button" data-amt="5000">5k</button>
+            <button class="chip-btn" type="button" data-amt="10000">10k</button>
+            <button class="chip-btn" type="button" data-amt="25000">25k</button>
+          </div>
+        </div>
+        <div class="payline">
+          <span class="field-label">You pay</span>
+          <div class="price" id="payOut"></div>
+          <div class="how" id="payHow"></div>
+        </div>
+        <details class="rate-edit">
+          <summary>Change the rate</summary>
+          <div class="rate-ctl">
+            <div class="input"><span class="affix">$</span><input id="buyerRateInput" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" aria-label="Rate in dollars per 1,000 Robux"><span class="unit">/ 1k</span></div>
+          </div>
+        </details>
+      </section>
+    </div>
+    <div id="sellerView" hidden>
+      <button class="switch" type="button" data-go="home">&#8592; Back</button>
+      <div class="grid">
+    <section class="card buy" aria-labelledby="buyTitle">
+      <div class="card-head">
+        <h2 class="label" id="buyTitle">Your buy</h2>
+        <button class="btn-text" id="clearBtn" type="button">Clear</button>
+      </div>
+      <p class="chip" id="exampleChip">Example deal loaded. Type in yours.</p>
+      <div class="two">
+        <div class="col">
+          <div class="field">
+            <label class="field-label" for="robuxInput">Robux bought</label>
+            <div class="input" id="robuxBox"><span class="affix">R$</span><input id="robuxInput" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="10,000"></div>
+            <div class="hint" id="robuxHint">Shorthand works: 10k, 2.5k</div>
+          </div>
+          <div class="field">
+            <span class="field-label" id="taxLabel">Before or after Roblox tax?</span>
+            <div class="seg" role="radiogroup" aria-labelledby="taxLabel">
+              <input type="radio" name="tax" id="taxBefore" value="before">
+              <label for="taxBefore"><b>Before tax</b><span>You get 70%</span></label>
+              <input type="radio" name="tax" id="taxAfter" value="after">
+              <label for="taxAfter"><b>After tax</b><span>You get 100%</span></label>
+            </div>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label" for="paidInput">Price paid</label>
+          <div class="input" id="paidBox"><span class="affix">$</span><input id="paidInput" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="0.00"></div>
+          <div class="mini" id="mini">
+            <div class="mini-head">
+              <label for="buyRateSlider">Seller's rate</label>
+              <output id="buyRateOut" for="buyRateSlider"></output>
+            </div>
+            <input type="range" id="buyRateSlider" min="1" max="5" step="0.05" value="2.5">
+            <div class="mini-scale" id="miniScale" aria-hidden="true"></div>
+          </div>
+          <div class="hint" id="paidHint"></div>
+        </div>
+      </div>
+      <div class="received">
+        <div>
+          <div class="field-label">Robux you receive</div>
+          <div class="how" id="receivedHow"></div>
+        </div>
+        <div class="big" id="receivedOut"></div>
+      </div>
+    </section>
+
+    <section class="card result" aria-labelledby="resultTitle">
+      <div class="top">
+        <h2 class="label" id="resultTitle">Result</h2>
+        <span class="pill" id="pill"></span>
+      </div>
+      <div class="profit" id="profitOut"></div>
+      <div class="at" id="atOut"></div>
+      <dl class="ledger">
+        <div class="row"><dt>Revenue</dt><dd class="in" id="revenueOut"></dd></div>
+        <div class="row"><dt>Cost</dt><dd class="out" id="costOut"></dd></div>
+        <div class="row"><dt>Break-even rate</dt><dd id="beOut"></dd></div>
+      </dl>
+      <div class="math" aria-label="How it was worked out"><span id="math1"></span><span id="math2"></span></div>
+    </section>
+
+    <section class="card sell" aria-labelledby="sellTitle">
+      <div class="rate-head">
+        <div>
+          <h2 class="label" id="sellTitle">Your sell rate</h2>
+          <div class="sub">Price per 1,000 Robux</div>
+        </div>
+        <div class="rate-ctl">
+          <button class="step" id="rateDown" type="button" aria-label="Lower rate by 5 cents">−</button>
+          <div class="input" id="rateBox"><span class="affix">$</span><input id="rateInput" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" aria-label="Sell rate in dollars per 1,000 Robux" aria-describedby="rateHint"><span class="unit">/ 1k</span></div>
+          <button class="step" id="rateUp" type="button" aria-label="Raise rate by 5 cents">+</button>
+        </div>
+      </div>
+      <div class="hint" id="rateHint" hidden>Pick a rate from $2.50 to $7.50.</div>
+      <div class="scale" id="scale">
+        <div class="be-flag" id="beFlag" hidden><span>Break-even</span><b id="beFlagVal"></b></div>
+        <div class="be-line" id="beLine" hidden></div>
+        <input type="range" id="rateSlider" min="2.5" max="7.5" step="0.05" value="5" aria-label="Sell rate per 1,000 Robux">
+        <div class="ticks" id="ticks" aria-hidden="true"></div>
+      </div>
+      <p class="note" id="beNote"></p>
+      <div class="share">
+        <button class="btn-text" id="copyLink" type="button">Copy buyer link</button>
+        <code id="shareUrl"></code>
+      </div>
+    </section>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p id="footNote"></p>
+  </footer>
+</div>
+
+<div class="overlay open" id="chooser">
+  <div class="overlay-inner">
+    <div class="eyebrow">R$ &#8594; USD</div>
+    <h2 class="overlay-title">Roblox <span class="bm">blackmarket</span> calculator</h2>
+    <p class="overlay-sub">What are you here for?</p>
+    <div class="choose">
+      <button class="choice" type="button" data-go="buy">
+        <b>I'm buying Robux</b>
+        <span>See exactly what you'll pay for the amount you want.</span>
+      </button>
+      <button class="choice" type="button" data-go="sell">
+        <b>I'm reselling</b>
+        <span>Work out the profit on a flip before you take it.</span>
+      </button>
+    </div>
+  </div>
+</div>
+<div class="sig">made by zeesan</div>
+
+<script>
+(() => {
+  const MIN = 2.5, MAX = 7.5, STEP = 0.05;
+  const BUY_MIN = 1, BUY_MAX = 5;
+  const BUYER_DEFAULT = 2.85;   // rate a buyer sees when the link carries none
+  const KEY = 'robux-resale-calc:v1';
+  const EXAMPLE = { robux: '10,000', paid: '25.00', tax: 'before', rate: 5, buyRate: 2.5, priceMode: 'typed' };
+  const $ = id => document.getElementById(id);
+  const el = {
+    robux: $('robuxInput'), paid: $('paidInput'), robuxBox: $('robuxBox'), paidBox: $('paidBox'),
+    robuxHint: $('robuxHint'), paidHint: $('paidHint'), taxBefore: $('taxBefore'), taxAfter: $('taxAfter'),
+    received: $('receivedOut'), receivedHow: $('receivedHow'), chip: $('exampleChip'), clear: $('clearBtn'),
+    rateInput: $('rateInput'), rateBox: $('rateBox'), rateHint: $('rateHint'), slider: $('rateSlider'),
+    down: $('rateDown'), up: $('rateUp'), scale: $('scale'), beFlag: $('beFlag'), beFlagVal: $('beFlagVal'),
+    beLine: $('beLine'), beNote: $('beNote'), ticks: $('ticks'), pill: $('pill'), profit: $('profitOut'),
+    at: $('atOut'), revenue: $('revenueOut'), cost: $('costOut'), be: $('beOut'), math1: $('math1'), math2: $('math2'),
+    buySlider: $('buyRateSlider'), buyOut: $('buyRateOut'), mini: $('mini'), miniScale: $('miniScale'),
+    views: $('views'), chooser: $('chooser'), buyerView: $('buyerView'), sellerView: $('sellerView'), lede: $('lede'),
+    want: $('wantInput'), wantBox: $('wantBox'), wantLabel: $('wantLabel'), modeKeep: $('modeKeep'), modeGp: $('modeGamepass'), chips: $('chips'), payOut: $('payOut'), payHow: $('payHow'),
+    buyerTag: $('buyerRateTag'), buyerRateInput: $('buyerRateInput'), copyLink: $('copyLink'), shareUrl: $('shareUrl'), foot: $('footNote')
+  };
+  let rate = EXAMPLE.rate;
+  let buyRate = EXAMPLE.buyRate;       // seller's rate, $ per 1k
+  let priceMode = EXAMPLE.priceMode;   // 'rate' = Price paid follows the seller's rate; 'typed' = you typed the price
+  let buyerRate = 5;                   // rate shown to a buyer, from the shared link
+  let lastView = 'sell';
+  let booted = false;
+
+  // ---------- formatting ----------
+  const fmtInt = n => n.toLocaleString('en-US');
+  const usd = cents => '$' + (Math.abs(cents) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const signed = cents => cents > 0 ? '+' + usd(cents) : cents < 0 ? '−' + usd(cents) : usd(0);
+  const rateStr = r => '$' + r.toFixed(2);
+  const clampRate = r => Math.min(MAX, Math.max(MIN, Math.round(r * 100) / 100));
+  const clampBuy = r => Math.min(BUY_MAX, Math.max(BUY_MIN, Math.round(r * 100) / 100));
+  const money = cents => (cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  // Same geometry the browser uses for the thumb centre, so marks line up with it.
+  const pos = (f, t = '--thumb') => `calc(var(${t}) / 2 + (100% - var(${t})) * ${Math.min(1, Math.max(0, f)).toFixed(5)})`;
+
+  // Accepts "10000", "10,000", "10k", "2.5k", "R$10k", "$25.50"
+  function parseAmount(raw, allowSuffix) {
+    let s = String(raw).toLowerCase().replace(/[\s,]/g, '').replace(/^r?\$/, '').replace(/^r(?=[\d.])/, '');
+    if (s === '') return { empty: true, value: 0 };
+    let mult = 1;
+    if (allowSuffix && /[km]$/.test(s)) { mult = s.endsWith('k') ? 1e3 : 1e6; s = s.slice(0, -1); }
+    if (!/^(\d*\.?\d+|\d+\.)$/.test(s)) return { invalid: true };
+    return { value: Number(s) * mult };
+  }
+
+  function setField(box, hint, bad, errText, okText) {
+    box.classList.toggle('invalid', !!bad);
+    hint.classList.toggle('error', !!bad);
+    hint.textContent = bad ? errText : okText;
+  }
+
+  // ---------- slider scale ----------
+  function buildTicks() {
+    const frag = document.createDocumentFragment();
+    for (let i = 0; i <= 10; i++) {
+      const f = i / 10, major = i % 2 === 0;
+      const t = document.createElement('span');
+      t.className = 'tick' + (major ? ' major' : '');
+      t.style.left = pos(f);
+      frag.appendChild(t);
+      if (major) {
+        const l = document.createElement('span');
+        l.className = 'tick-label' + (i === 0 ? ' first' : i === 10 ? ' last' : '');
+        l.style.left = pos(f);
+        l.textContent = rateStr(MIN + i * 0.5);
+        frag.appendChild(l);
+      }
+    }
+    el.ticks.appendChild(frag);
+  }
+  function buildMiniScale() {
+    for (let v = BUY_MIN; v <= BUY_MAX; v++) {
+      const t = document.createElement('span');
+      t.className = v === BUY_MIN ? 'first' : v === BUY_MAX ? 'last' : '';
+      t.style.left = pos((v - BUY_MIN) / (BUY_MAX - BUY_MIN), '--mthumb');
+      t.textContent = '$' + v;
+      el.miniScale.appendChild(t);
+    }
+  }
+  // Price paid = Robux bought / 1,000 x seller's rate (whole cents)
+  function priceFromRate() {
+    const r = parseAmount(el.robux.value, true);
+    if (r.invalid) return;
+    el.paid.value = r.empty ? '' : money(Math.round(Math.round(r.value) * Math.round(buyRate * 100) / 1000));
+  }
+
+  // ---------- remembered numbers (this browser only) ----------
+  function save() {
+    try {
+      localStorage.setItem(KEY, JSON.stringify({
+        robux: el.robux.value, paid: el.paid.value,
+        tax: el.taxAfter.checked ? 'after' : 'before', rate, buyRate, priceMode
+      }));
+    } catch (e) { /* storage unavailable: calculator still works */ }
+  }
+  function load() {
+    try {
+      const s = JSON.parse(localStorage.getItem(KEY) || 'null');
+      if (s && typeof s === 'object') return s;
+    } catch (e) { /* ignore */ }
+    return null;
+  }
+
+  function setNote(pre, bold, post) {
+    const b = document.createElement('b'); b.textContent = bold;
+    el.beNote.replaceChildren(pre, b, post);
+  }
+  const small = t => Object.assign(document.createElement('small'), { textContent: t });
+
+  // ---------- the math ----------
+  function render() {
+    const r = parseAmount(el.robux.value, true);
+    const p = parseAmount(el.paid.value, false);
+    const before = !el.taxAfter.checked;
+    setField(el.robuxBox, el.robuxHint, r.invalid, 'Use a number like 10000 or 10k', 'Shorthand works: 10k, 2.5k');
+    const ok = !r.invalid && !p.invalid;
+
+    const bought = ok ? Math.round(r.value) : 0;
+    const received = before ? Math.floor(bought * 7 / 10) : bought;   // Roblox keeps 30%, rounds down
+    const paidC = ok ? Math.round(p.value * 100) : 0;                  // cents
+    const revC = Math.round(received * Math.round(rate * 100) / 1000); // received / 1000 * rate, in cents
+    const profitC = revC - paidC;
+    const be = received > 0 ? (paidC / 100) * 1000 / received : null;  // exact break-even $ per 1k
+    const beUp = be === null ? null : Math.ceil(be * 100 - 1e-7) / 100; // lowest cent rate that doesn't lose money
+
+    // Seller's rate mini slider: sets Price paid, or shows what a typed price works out to per 1k
+    const boughtRaw = r.invalid || r.empty ? 0 : Math.round(r.value);
+    let shown = null;
+    if (priceMode === 'rate') shown = buyRate;
+    else if (!p.invalid && !p.empty && boughtRaw > 0) shown = (Math.round(p.value * 100) / 100) * 1000 / boughtRaw;
+    if (priceMode === 'typed' && shown !== null) el.buySlider.value = String(clampBuy(shown));
+    const offSlider = shown !== null && (shown < BUY_MIN || shown > BUY_MAX);
+    const fb = (Number(el.buySlider.value) - BUY_MIN) / (BUY_MAX - BUY_MIN), mAt = pos(fb, '--mthumb');
+    el.mini.style.setProperty('--mtrack', `linear-gradient(90deg, var(--red-zone) 0 ${mAt}, var(--neutral-zone) ${mAt} 100%)`);
+    if (shown === null) el.buyOut.textContent = '\u2014';
+    else el.buyOut.replaceChildren(rateStr(shown), small('/ 1k'));
+    el.buySlider.setAttribute('aria-valuetext', shown === null ? 'No rate yet' : `${rateStr(shown)} per 1,000 Robux`);
+    const paidNote = priceMode === 'rate'
+      ? (boughtRaw > 0 ? `${fmtInt(boughtRaw)} \u00f7 1,000 \u00d7 ${rateStr(buyRate)}` : 'Enter Robux bought to price it by rate')
+      : offSlider ? 'Your price is off the $1\u2013$5 slider' : 'Or drag to use the seller\u2019s rate per 1k';
+    setField(el.paidBox, el.paidHint, p.invalid, 'Use a dollar amount like 25 or 25.50', paidNote);
+
+    // Robux received
+    if (r.invalid) {
+      el.received.textContent = '—';
+      el.receivedHow.textContent = '';
+    } else {
+      el.received.replaceChildren(small('R$'), fmtInt(received));
+      el.receivedHow.textContent = r.empty ? 'Enter the Robux you bought'
+        : before ? `${fmtInt(bought)} × 70% · Roblox keeps ${fmtInt(bought - received)}`
+        : 'Already after tax, nothing taken';
+    }
+
+    // Result card
+    const state = !ok ? 'none' : profitC > 0 ? 'up' : profitC < 0 ? 'down' : 'even';
+    el.profit.className = 'profit ' + state;
+    el.pill.className = 'pill ' + state;
+    el.pill.textContent = { up: 'Profit', down: 'Loss', even: 'Break-even', none: 'Check inputs' }[state];
+    el.scale.style.setProperty('--ring', state === 'up' ? 'var(--green)' : state === 'down' ? 'var(--red)' : 'var(--muted)');
+    if (!ok) {
+      el.profit.textContent = '—';
+      el.at.textContent = 'Fix the highlighted field to see results';
+      el.revenue.textContent = el.cost.textContent = el.be.textContent = '—';
+      el.math1.textContent = el.math2.textContent = '';
+    } else {
+      el.profit.textContent = signed(profitC);
+      el.at.textContent = `selling R$ ${fmtInt(received)} at ${rateStr(rate)} per 1k`;
+      el.revenue.textContent = revC > 0 ? '+' + usd(revC) : usd(0);
+      el.cost.textContent = paidC > 0 ? '−' + usd(paidC) : usd(0);
+      if (beUp === null) el.be.textContent = '—';
+      else el.be.replaceChildren(rateStr(beUp), small('/ 1k'));
+      el.math1.textContent = `${fmtInt(received)} ÷ 1,000 × ${rateStr(rate)} = ${usd(revC)} revenue`;
+      el.math2.textContent = `${usd(revC)} − ${usd(paidC)} paid = ${signed(profitC)}`;
+    }
+
+    // Slider: red = losing rates, green = profitable rates, pin at break-even
+    const scale = el.scale.style;
+    if (!ok || be === null) {
+      scale.setProperty('--track', 'linear-gradient(var(--neutral-zone), var(--neutral-zone))');
+      el.beFlag.hidden = el.beLine.hidden = true;
+      el.beNote.textContent = !ok ? 'Fix the highlighted field to see your break-even.' : 'Enter the Robux you bought to see your break-even.';
+    } else if (be < MIN) {
+      scale.setProperty('--track', 'linear-gradient(var(--green-zone), var(--green-zone))');
+      el.beFlag.hidden = el.beLine.hidden = true;
+      setNote('Every rate on the slider makes a profit. Break-even is ', rateStr(beUp), ' per 1k.');
+    } else if (be > MAX) {
+      scale.setProperty('--track', 'linear-gradient(var(--red-zone), var(--red-zone))');
+      el.beFlag.hidden = el.beLine.hidden = true;
+      setNote('Every rate on the slider loses money. Break-even is ', rateStr(beUp), ' per 1k.');
+    } else {
+      const f = (be - MIN) / (MAX - MIN), at = pos(f);
+      scale.setProperty('--be', at);
+      scale.setProperty('--track', `linear-gradient(90deg, var(--red-zone) 0 ${at}, var(--green-zone) ${at} 100%)`);
+      el.beFlag.hidden = el.beLine.hidden = false;
+      el.beFlagVal.textContent = rateStr(beUp);
+      el.beFlag.classList.toggle('start', f < 0.12);
+      el.beFlag.classList.toggle('end', f > 0.88);
+      setNote('Anything under ', rateStr(beUp), ' per 1k loses money.');
+    }
+    el.slider.setAttribute('aria-valuetext', `${rateStr(rate)} per 1,000 Robux` +
+      (ok ? `, ${state === 'down' ? 'loss' : 'profit'} ${signed(profitC)}` : ''));
+  }
+
+  // ---------- rate controls ----------
+  function setRate(r, from, quiet) {
+    rate = clampRate(r);
+    if (from !== 'slider') el.slider.value = String(rate);
+    if (from !== 'typed') el.rateInput.value = rate.toFixed(2);
+    el.down.disabled = rate <= MIN;
+    el.up.disabled = rate >= MAX;
+    updateShare();
+    render();
+    if (!quiet) save();
+  }
+  el.slider.addEventListener('input', () => { el.rateHint.hidden = true; setRate(Number(el.slider.value), 'slider'); });
+  el.down.addEventListener('click', () => { el.rateHint.hidden = true; setRate(rate - STEP); });
+  el.up.addEventListener('click', () => { el.rateHint.hidden = true; setRate(rate + STEP); });
+  el.rateInput.addEventListener('input', () => {
+    const p = parseAmount(el.rateInput.value, false);
+    if (p.empty || p.invalid || p.value < MIN || p.value > MAX) return; // wait until it's a usable rate
+    el.rateHint.hidden = true;
+    setRate(p.value, 'typed');
+  });
+  el.rateInput.addEventListener('change', () => {
+    const p = parseAmount(el.rateInput.value, false);
+    const outside = !p.empty && !p.invalid && (p.value < MIN || p.value > MAX);
+    setRate(p.empty || p.invalid ? rate : p.value);
+    el.rateHint.hidden = !outside;
+    if (outside) el.rateHint.textContent = `Rates go from $2.50 to $7.50, so this was set to ${rateStr(rate)}.`;
+  });
+
+  // ---------- buy inputs ----------
+  const onEdit = () => { el.chip.hidden = true; render(); save(); };
+  el.robux.addEventListener('input', () => { if (priceMode === 'rate') priceFromRate(); onEdit(); });
+  el.paid.addEventListener('input', () => { priceMode = 'typed'; onEdit(); });
+  el.buySlider.addEventListener('input', () => {
+    buyRate = clampBuy(Number(el.buySlider.value));
+    priceMode = 'rate';
+    priceFromRate();
+    onEdit();
+  });
+  [el.taxBefore, el.taxAfter].forEach(i => i.addEventListener('change', onEdit));
+  el.robux.addEventListener('change', () => {           // "10k" -> "10,000"
+    const p = parseAmount(el.robux.value, true);
+    if (!p.empty && !p.invalid) { el.robux.value = fmtInt(Math.round(p.value)); save(); }
+  });
+  el.paid.addEventListener('change', () => {            // "25.5" -> "25.50"
+    const p = parseAmount(el.paid.value, false);
+    if (!p.empty && !p.invalid) {
+      el.paid.value = (Math.round(p.value * 100) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      save();
+    }
+  });
+  el.clear.addEventListener('click', () => { el.robux.value = ''; el.paid.value = ''; onEdit(); el.robux.focus(); });
+
+  // ---------- views ----------
+  const FOOT = {
+    buy: 'Roblox keeps 30% of every gamepass sale, so a gamepass always costs more than what lands in your account. Pick whichever amount you know and this works out the other one.',
+    sell: 'Before-tax amounts are multiplied by 0.7 and rounded down to whole Robux, since Roblox keeps 30%. Your last numbers stay saved in this browser.'
+  };
+  const LEDE = {
+    buy: 'Enter how much Robux you\u2019re buying and see what it costs.',
+    sell: 'Enter what you bought and what you paid, then slide your sell rate to see your revenue and profit.'
+  };
+  function showView(v) {
+    const open = v === 'home';
+    if (!open) lastView = v;
+    el.buyerView.hidden = lastView !== 'buy';
+    el.sellerView.hidden = lastView !== 'sell';
+    el.chooser.classList.toggle('open', open);
+    el.views.classList.toggle('behind', open);
+    el.views.setAttribute('aria-hidden', open ? 'true' : 'false');
+    document.documentElement.classList.toggle('locked', open);
+    el.lede.textContent = LEDE[lastView];
+    el.foot.textContent = FOOT[lastView];
+    el.views.toggleAttribute('inert', open);
+    if (open && booted) el.chooser.querySelector('.choice').focus({ preventScroll: true });
+    if (!open) {
+      if (el.chooser.contains(document.activeElement)) document.activeElement.blur();
+      const view = lastView === 'buy' ? el.buyerView : el.sellerView;
+      view.classList.remove('view-enter');
+      void view.offsetWidth;            // restart the entry animation
+      view.classList.add('view-enter');
+      window.scrollTo(0, 0);
+    }
+    try { history.replaceState(null, '', location.pathname + location.search + (open ? '' : '#' + v)); } catch (e) { /* sandboxed */ }
+  }
+  document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => showView(b.dataset.go)));
+
+  // ---------- buyer view ----------
+  function renderBuyer() {
+    const w = parseAmount(el.want.value, true);
+    const keepMode = el.modeKeep.checked;
+    el.wantBox.classList.toggle('invalid', !!w.invalid);
+    el.wantLabel.textContent = keepMode ? 'Robux you want to end up with' : "Robux you're buying";
+    const amt = w.invalid || w.empty ? 0 : Math.round(w.value);
+    // the rate is per 1k of the gamepass price, so a "what I keep" amount is grossed up first
+    const gross = keepMode ? Math.ceil(amt * 10 / 7) : amt;
+    const keep = keepMode ? amt : Math.floor(amt * 7 / 10);
+    el.buyerTag.textContent = rateStr(buyerRate);
+    el.payOut.textContent = w.invalid ? '\u2014' : '$' + money(Math.round(gross * Math.round(buyerRate * 100) / 1000));
+    el.payHow.textContent = w.invalid ? 'Use a number like 10000 or 10k'
+      : amt === 0 ? 'Enter how much Robux you want'
+      : keepMode
+        ? `set a R$ ${fmtInt(gross)} gamepass \u00b7 ${fmtInt(gross)} \u00f7 1,000 \u00d7 ${rateStr(buyerRate)} \u00b7 you keep R$ ${fmtInt(keep)}`
+        : `${fmtInt(amt)} \u00f7 1,000 \u00d7 ${rateStr(buyerRate)} \u00b7 you keep R$ ${fmtInt(keep)} after Roblox\u2019s 30% cut`;
+  }
+  [el.modeKeep, el.modeGp].forEach(i => i.addEventListener('change', renderBuyer));
+  el.want.addEventListener('input', renderBuyer);
+  el.want.addEventListener('change', () => {
+    const w = parseAmount(el.want.value, true);
+    if (!w.empty && !w.invalid) el.want.value = fmtInt(Math.round(w.value));
+  });
+  el.chips.addEventListener('click', e => {
+    const b = e.target.closest('[data-amt]');
+    if (!b) return;
+    el.want.value = fmtInt(Number(b.dataset.amt));
+    renderBuyer();
+  });
+  el.buyerRateInput.addEventListener('input', () => {
+    const p = parseAmount(el.buyerRateInput.value, false);
+    if (p.empty || p.invalid || p.value <= 0 || p.value > 50) return;
+    buyerRate = Math.round(p.value * 100) / 100;
+    renderBuyer();
+  });
+  el.buyerRateInput.addEventListener('change', () => {
+    const p = parseAmount(el.buyerRateInput.value, false);
+    if (!p.empty && !p.invalid && p.value > 0 && p.value <= 50) buyerRate = Math.round(p.value * 100) / 100;
+    el.buyerRateInput.value = buyerRate.toFixed(2);
+    renderBuyer();
+  });
+
+  // ---------- buyer link ----------
+  function shareLink() {
+    const base = location.origin && location.origin !== 'null' ? location.origin : '';
+    return `${base}${location.pathname}?rate=${rate.toFixed(2)}`;
+  }
+  function updateShare() { el.shareUrl.textContent = shareLink(); }
+  el.copyLink.addEventListener('click', () => {
+    const done = ok => {
+      el.copyLink.textContent = ok ? 'Copied' : 'Copy it from below';
+      setTimeout(() => { el.copyLink.textContent = 'Copy buyer link'; }, 1800);
+    };
+    try {
+      navigator.clipboard.writeText(shareLink()).then(() => done(true), () => done(false));
+    } catch (e) { done(false); }
+  });
+
+  // ---------- start ----------
+  buildTicks();
+  const saved = load();
+  const start = saved || EXAMPLE;
+  el.robux.value = typeof start.robux === 'string' ? start.robux : EXAMPLE.robux;
+  el.paid.value = typeof start.paid === 'string' ? start.paid : EXAMPLE.paid;
+  (start.tax === 'after' ? el.taxAfter : el.taxBefore).checked = true;
+  buildMiniScale();
+  buyRate = clampBuy(Number(start.buyRate) || EXAMPLE.buyRate);
+  priceMode = start.priceMode === 'rate' ? 'rate' : 'typed';
+  el.buySlider.value = String(buyRate);
+  if (priceMode === 'rate') priceFromRate();
+  el.chip.hidden = !!saved;
+  setRate(Number(start.rate) || EXAMPLE.rate, null, true);
+
+  const linkRate = parseFloat(new URLSearchParams(location.search).get('rate'));
+  const hasLinkRate = isFinite(linkRate) && linkRate > 0 && linkRate <= 50;
+  buyerRate = hasLinkRate ? Math.round(linkRate * 100) / 100 : BUYER_DEFAULT;
+  el.buyerRateInput.value = buyerRate.toFixed(2);
+  el.want.value = '10,000';
+  renderBuyer();
+  document.documentElement.classList.add('no-anim');   // no animation on first paint
+  showView(hasLinkRate || location.hash === '#buy' ? 'buy' : location.hash === '#sell' ? 'sell' : 'home');
+  booted = true;
+  requestAnimationFrame(() => requestAnimationFrame(() => document.documentElement.classList.remove('no-anim')));
+})();
+</script>
+</body>
+</html>
